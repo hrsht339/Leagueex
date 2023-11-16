@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Quiz</title>
+</head>
+<body>
+  <h1>Real-Time Quiz</h1>
+
+  <button id="createRoom">Create Room</button>
+  <button id="getRooms">Get Available Rooms</button>
+
+  <div id="quizContainer" style="display: none;">
+    <div id="questionContainer"></div>
+    <input type="text" id="userAnswer" placeholder="Your Answer">
+    <button id="submitAnswer">Submit Answer</button>
+    <div id="resultContainer"></div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
+  <script>
+    const socket = io();
+    let currentRoom;
+
+    document.getElementById('createRoom').addEventListener('click', () => {
+      socket.emit('createRoom');
+    });
+
+    document.getElementById('getRooms').addEventListener('click', () => {
+      socket.emit('getRooms');
+    });
+
+    document.getElementById('submitAnswer').addEventListener('click', () => {
+      const userAnswer = document.getElementById('userAnswer').value;
+      socket.emit('submitAnswer', { room: currentRoom.id, answer: userAnswer });
+    });
+
+    socket.on('roomCreated', (room) => {
+      console.log('Room created:', room);
+      currentRoom = room;
+      document.getElementById('quizContainer').style.display = 'block';
+      displayNextQuestion();
+    });
+
+    socket.on('availableRooms', (rooms) => {
+      console.log('Available Rooms:', rooms);
+    });
+
+    socket.on('roomJoined', (room) => {
+      console.log('Room joined:', room);
+      currentRoom = room;
+      document.getElementById('quizContainer').style.display = 'block';
+      displayNextQuestion();
+    });
+
+    socket.on('gameStarted', (questions) => {
+      console.log('Game started with questions:', questions);
+      displayNextQuestion();
+    });
+
+    socket.on('gameConclusion', (result) => {
+      console.log('Game concluded:', result);
+      document.getElementById('resultContainer').textContent = result;
+    });
+
+    socket.on('nextQuestion', (question) => {
+      console.log('Next question:', question);
+      document.getElementById('questionContainer').textContent = question;
+    });
+
+    socket.on('quizState', (state) => {
+      console.log('Quiz state:', state);
+      displayCurrentQuestion(state.currentQuestion, state.totalQuestions);
+    });
+
+    function displayNextQuestion() {
+      document.getElementById('questionContainer').textContent = 'Loading next question...';
+      document.getElementById('userAnswer').value = '';
+      document.getElementById('resultContainer').textContent = '';
+      socket.emit('getNextQuestion', currentRoom.id);
+    }
+
+    function displayCurrentQuestion(currentQuestion, totalQuestions) {
+      document.getElementById('questionContainer').textContent = `Question ${currentQuestion} of ${totalQuestions}`;
+    }
+
+  </script>
+</body>
+</html>
