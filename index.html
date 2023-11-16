@@ -10,6 +10,7 @@
 
   <button id="createRoom">Create Room</button>
   <button id="getRooms">Get Available Rooms</button>
+  <button id="joinRoom">Join Room</button>
 
   <div id="quizContainer" style="display: none;">
     <div id="questionContainer"></div>
@@ -29,6 +30,11 @@
 
     document.getElementById('getRooms').addEventListener('click', () => {
       socket.emit('getRooms');
+    });
+
+    document.getElementById('joinRoom').addEventListener('click', () => {
+      const roomId = prompt('Enter the Room ID to join:');
+      socket.emit('joinRoom', roomId);
     });
 
     document.getElementById('submitAnswer').addEventListener('click', () => {
@@ -74,6 +80,10 @@
       displayCurrentQuestion(state.currentQuestion, state.totalQuestions);
     });
 
+    socket.on('playerLeft', (playerId) => {
+      console.log(`Player ${playerId} has left the room`);
+    });
+
     function displayNextQuestion() {
       document.getElementById('questionContainer').textContent = 'Loading next question...';
       document.getElementById('userAnswer').value = '';
@@ -84,7 +94,6 @@
     function displayCurrentQuestion(currentQuestion, totalQuestions) {
       document.getElementById('questionContainer').textContent = `Question ${currentQuestion} of ${totalQuestions}`;
     }
-
   </script>
 </body>
 </html>

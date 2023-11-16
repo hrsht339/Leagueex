@@ -16,14 +16,21 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
+const sampleQuestions = [
+  { id: 1, text: 'What is the capital of France?', options: ['Paris', 'Berlin', 'London', 'Madrid'], correctAnswer: 'Paris' },
+  { id: 2, text: 'Who wrote "Romeo and Juliet"?', options: ['Shakespeare', 'Hemingway', 'Tolstoy', 'Austen'], correctAnswer: 'Shakespeare' },
+
+];
+
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
   socket.on('createRoom', () => {
-    const room = { id: socket.id, users: [socket.id] };
+    const room = { id: socket.id, users: [socket.id], questions: sampleQuestions, currentQuestion: 0 };
     rooms.push(room);
     socket.join(socket.id);
     io.to(socket.id).emit('roomCreated', room);
+    sendNextQuestion(socket.id);
   });
 
   socket.on('getRooms', () => {
@@ -36,6 +43,7 @@ io.on('connection', (socket) => {
       room.users.push(socket.id);
       socket.join(room.id);
       io.to(room.id).emit('roomJoined', room);
+      sendNextQuestion(room.id);
     }
   });
 
@@ -49,6 +57,18 @@ io.on('connection', (socket) => {
       io.to(room.id).emit('playerLeft', socket.id);
     }
   });
+
+  function sendNextQuestion(roomId) {
+    const room = rooms.find((r) => r.id === roomId);
+    if (room && room.currentQuestion < room.questions.length) {
+      const question = room.questions[room.currentQuestion];
+      io.to(room.id).emit('nextQuestion', question);
+      io.to(room.id).emit('quizState', { currentQuestion: room.currentQuestion + 1, totalQuestions: room.questions.length });
+      room.currentQuestion++;
+    } else {
+      io.to(room.id).emit('gameConclusion', 'Quiz completed!');
+    }
+  }
 });
 
 server.listen(PORT, () => {
